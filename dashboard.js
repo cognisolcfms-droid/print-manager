@@ -95,4 +95,14 @@ document.addEventListener('DOMContentLoaded', () => {
     fetchDashboardData();
     initSlider();
     googletag.cmd.push(() => googletag.display('div-gpt-ad-dashboard-top'));
+
 });
+function goBackToApp(tabName) {
+    // This looks at the "referrer" to see which extension sent the user here
+    const extensionId = "iagnoejddgdhabnaecdgkdehomdhglkg"; // Fallback ID
+    
+    // Attempt to jump back to the local extension index
+    const localUrl = `chrome-extension://${extensionId}/index.html?tab=${tabName}`;
+    
+    window.location.href = localUrl;
+}
