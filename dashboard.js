@@ -98,11 +98,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
 });
 function goBackToApp(tabName) {
-    // This looks at the "referrer" to see which extension sent the user here
-    const extensionId = "iagnoejddgdhabnaecdgkdehomdhglkg"; // Fallback ID
+    // 1. Try to get the ID from the URL (passed by idlehandler)
+    const urlParams = new URLSearchParams(window.location.search);
+    let extensionId = urlParams.get('extId');
     
-    // Attempt to jump back to the local extension index
-    const localUrl = `chrome-extension://${extensionId}/index.html?tab=${tabName}`;
+    // 2. Fallback to your known ID if the URL is clean (like for AdSense reviewers)
+    if (!extensionId) {
+        extensionId = "iagnoejddgdhabnaecdgkdehomdhglkg"; 
+    }
     
-    window.location.href = localUrl;
+    window.location.href = `chrome-extension://${extensionId}/index.html?tab=${tabName}`;
 }
+
