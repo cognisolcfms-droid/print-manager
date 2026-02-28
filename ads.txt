@@ -1,4 +1,4 @@
-google.com, 
-pub-6131214867117054, 
-DIRECT, 
+google.com,
+pub-6131214867117054,
+DIRECT,
 f08c47fec0942fa0
