@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - CogniSol | CFMS</title>
+
+    <meta http-equiv="Content-Security-Policy" content="
+        default-src 'self'; 
+        script-src 'self' 'unsafe-inline' https://securepubads.g.doubleclick.net https://www.googletagservices.com https://cdn.ampproject.org; 
+        style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; 
+        img-src 'self' https://*.doubleclick.net https://*.google.com https://*.googlesyndication.com data:; 
+        frame-src 'self' https://*.doubleclick.net https://*.google.com https://*.googlesyndication.com https://googleads.g.doubleclick.net;
+        connect-src 'self' https://securepubads.g.doubleclick.net https://cdn.ampproject.org https://*.google-analytics.com;
+        font-src 'self' https://fonts.gstatic.com;
+    ">
+    
+    <link rel="stylesheet" href="dashboard.css">
+    
+    <script async src="https://securepubads.g.doubleclick.net/tag/js/gpt.js"></script>
+    <script async custom-element="amp-auto-ads" src="https://cdn.ampproject.org/v0/amp-auto-ads-0.1.js"></script>
+</head>
+
+<body class="dashboard-body">
+    <amp-auto-ads type="adsense" data-ad-client="ca-pub-3286384487934781"></amp-auto-ads>
+
+    <div class="dashboard-container">
+        <header class="dashboard-header">
+            <div class="brand">
+                <h1>Print Store Manager</h1>
+                <span class="version-badge">V 1.1.2</span>
+            </div>
+        </header>
+
+        <section class="ad-slider-section">
+            <div class="ad-slider" id="mainSlider">
+                <div id="div-gpt-ad-dashboard-top" class="ad-slot-container">
+                    <div class="ad-fallback-wrapper">
+                        <img src="ads/ad1.jpg" class="fallback-img active" alt="Promotion 1">
+                        <img src="ads/ad2.jpg" class="fallback-img" alt="Promotion 2">
+                        <img src="ads/ad3.jpg" class="fallback-img" alt="Promotion 3">
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <nav class="nav-grid">
+            <a href="index.html?tab=createOrder" class="nav-card">
+                <span class="card-icon">🛍️</span>
+                <h3>New Order</h3>
+                <p>Generate invoices and track sales.</p>
+            </a>
+            <a href="index.html?tab=reports" class="nav-card">
+                <span class="card-icon">📈</span>
+                <h3>Analytics</h3>
+                <p>View revenue and GST reports.</p>
+            </a>
+            <a href="index.html?tab=viewOrders" class="nav-card">
+                <span class="card-icon">📋</span>
+                <h3>History</h3>
+                <p>Manage previous order records.</p>
+            </a>
+            <a href="index.html?tab=addService" class="nav-card">
+                <span class="card-icon">⚙️</span>
+                <h3>Services</h3>
+                <p>Configure rates and categories.</p>
+            </a>
+        </nav>
+
+        <section class="live-data-section">
+            <div class="dashboard-stats">
+                <div class="stat-card">
+                    <span class="stat-label">Total Revenue</span>
+                    <span class="stat-value" id="dash-total-revenue">₹ 0.00</span>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-label">Orders Today</span>
+                    <span class="stat-value" id="dash-today-orders">0</span>
+                </div>
+            </div>
+
+            <div class="recent-orders-container">
+                <h2 class="section-title">Recent Work Orders</h2>
+                <div class="table-responsive">
+                    <table class="recent-orders-table">
+                        <thead>
+                            <tr>
+                                <th>Order ID</th>
+                                <th>Customer</th>
+                                <th>Date</th>
+                                <th>Amount</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="recent-orders-body">
+                            </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <footer class="dashboard-footer">
+            <div class="footer-divider"></div>
+            <p>© 2026 CogniSol | CFMS. All rights reserved.</p>
+        </footer>
+    </div>
+
+    <script src="dashboard.js"></script>
+</body>
+</html>
