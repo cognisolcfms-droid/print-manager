@@ -7,38 +7,34 @@
     
     <meta http-equiv="Content-Security-Policy" content="
         default-src 'self'; 
-        script-src 'self' 'unsafe-inline' 'unsafe-eval' https://securepubads.g.doubleclick.net https://www.googletagservices.com https://*.googlesyndication.com https://*.google.com; 
+        script-src 'self' 'unsafe-inline' 'unsafe-eval'; 
         style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; 
-        img-src 'self' https://*.doubleclick.net https://*.google.com https://*.googlesyndication.com data:; 
-        frame-src 'self' https://*.doubleclick.net https://*.google.com https://*.googlesyndication.com https://googleads.g.doubleclick.net;
-        connect-src 'self' https://securepubads.g.doubleclick.net https://*.googlesyndication.com https://pagead2.googlesyndication.com;
+        img-src 'self' data:; 
+        connect-src 'self';
         font-src 'self' https://fonts.gstatic.com;
     ">
     
     <link rel="stylesheet" href="analytics.css">
     <script src="lib/chart.min.js"></script>
-    <script async src="https://securepubads.g.doubleclick.net/tag/js/gpt.js"></script>
 </head>
 <body class="analytics-body">
 
     <div class="analytics-container">
         <header class="analytics-header">
-            <button onclick="window.history.back()" class="back-btn">←</button>
+            <button onclick="window.history.back()" class="back-btn">← Back</button>
             <div class="header-text">
                 <h1>Business Insights</h1>
                 <p>Real-time performance metrics & revenue data</p>
             </div>
         </header>
 
-        <div id="div-gpt-ad-analytics-top" class="ad-container-top" style="min-height: 90px;"></div>
-
         <div class="analytics-grid">
             <div class="analytics-card main-chart-card">
                 <div class="card-header">
                     <h3>Revenue Distribution</h3>
-                    <span class="badge">Live Data</span>
+                    <span class="badge">Live Analytics</span>
                 </div>
-                <div class="chart-container" style="position: relative; height:300px;">
+                <div class="chart-container" style="position: relative; height:320px;">
                     <canvas id="revenueChart"></canvas>
                 </div>
                 <div class="metrics-summary" id="revenue-metrics"></div>
@@ -57,16 +53,15 @@
                                 <th class="text-right">Yield</th>
                             </tr>
                         </thead>
-                        <tbody id="top-services-body"></tbody>
+                        <tbody id="top-services-body">
+                            </tbody>
                     </table>
                 </div>
             </div>
         </div>
 
-        <div id="div-gpt-ad-analytics-bottom" class="ad-container-bottom" style="min-height: 250px;"></div>
-
         <footer class="analytics-footer">
-            <p>© 2026 CogniSol | CFMS • <a href="privacy.html">Privacy Policy</a></p>
+            <p>© 2026 CogniSol | CFMS • Internal Business Tool</p>
         </footer>
     </div>
 
