@@ -108,60 +108,47 @@ function initSlider() {
  */
 
 // --- 1. Google Ad Manager Init (Safe Mode) ---
+// --- 1. Google Ad Manager Init (Safe Mode) ---
 window.googletag = window.googletag || {cmd: []};
 
 googletag.cmd.push(function() {
     try {
-        // Define slot and enable services
         googletag.defineSlot('/12345678/Dashboard_Top', [1100, 340], 'div-gpt-ad-dashboard-top')
                  .addService(googletag.pubads());
         
-        // Tells Google to collapse the div if the ad fails to load (prevents layout shift)
-        // This is the key to preventing the "breaking" UI feel
+        // CRITICAL: Tells the UI to collapse the slot if the CORS/400 error happens
         googletag.pubads().collapseEmptyDivs(true); 
         googletag.pubads().enableSingleRequest();
         googletag.enableServices();
     } catch (e) {
-        // Silently catch initialization errors to prevent script crashes
-        console.debug("Ad Manager initialization skipped.");
+        console.log("Ad module deferred: safe mode active.");
     }
 });
 
-// --- 2. Start Everything ---
+// --- 2. Robust Start Logic ---
 document.addEventListener('DOMContentLoaded', () => {
-    // Run core app logic first to ensure the dashboard works regardless of ads
-    if (typeof fetchDashboardData === "function") fetchDashboardData();
-    if (typeof initSlider === "function") initSlider();
+    // 1. Run App Logic FIRST (so the UI works even if Google is blocked)
+    fetchDashboardData();
+    initSlider();
 
-    // Safe Ad Display Call
+    // 2. Wrap the Ad display in a try-catch to prevent a script-wide crash
     googletag.cmd.push(() => {
         try {
-            const adContainer = document.getElementById('div-gpt-ad-dashboard-top');
-            // Only attempt display if the div exists to avoid DOM errors
-            if(adContainer) {
+            if(document.getElementById('div-gpt-ad-dashboard-top')) {
                 googletag.display('div-gpt-ad-dashboard-top');
             }
         } catch (err) {
-            // This prevents the CORS/400 error from appearing as a functional crash
-            console.log("Dashboard Info: Ad module deferred due to environment restrictions.");
+            console.warn("GPT Display failed: Switching to local fallback.");
         }
     });
 
-    // Handle AdBlock/CORS after delay without direct style manipulation
+    // 3. Fallback Trigger: If Ad fails to load after 3 seconds, show fallback
     setTimeout(() => {
         const adSlot = document.getElementById('div-gpt-ad-dashboard-top');
-        // If the slot didn't load (CORS error or AdBlock), apply a CSS class
+        // If height is 0, Google failed. We show your local images.
         if (adSlot && adSlot.offsetHeight === 0) {
-            // Using a class instead of .style to stay CSP compliant
-            adSlot.classList.add('ad-placeholder'); 
-            console.info("Notice: Ad container optimized for current environment.");
+            adSlot.classList.add('use-fallback'); 
+            console.info("Notice: Using local promotional assets.");
         }
     }, 3000);
 });
-
-// --- 3. Navigation Bridge ---
-function goBackToApp(tabName) {
-    const urlParams = new URLSearchParams(window.location.search);
-    const extensionId = urlParams.get('extId') || "iagnoejddgdhabnaecdgkdehomdhglkg";
-    window.location.href = `chrome-extension://${extensionId}/index.html?tab=${tabName}`;
-}
