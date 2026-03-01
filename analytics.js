@@ -1,6 +1,7 @@
 /**
- * CogniSol CFMS: Analytics Bridge Logic
- * Handles Chart.js initialization, KPI updates, and data filtering.
+ * CogniSol CFMS: Advanced Analytics Bridge
+ * Developed for: Business Insights UI
+ * Date: 2026-03-01
  */
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -18,14 +19,14 @@ document.addEventListener('DOMContentLoaded', () => {
             kpiOrders: document.getElementById('kpi-total-orders'),
             kpiAvg: document.getElementById('kpi-avg-order'),
             kpiNet: document.getElementById('kpi-net-profit'),
-            // Lists
+            // UI Components
             servicesTable: document.getElementById('top-services-body'),
             metricsSummary: document.getElementById('revenue-metrics')
         },
 
-        init() {
+        async init() {
             this.bindEvents();
-            this.loadDashboardData(this.elements.dateFilter.value);
+            await this.loadData();
         },
 
         bindEvents() {
@@ -34,123 +35,117 @@ document.addEventListener('DOMContentLoaded', () => {
                 window.history.back();
             });
 
-            // Filtering
-            this.elements.dateFilter.addEventListener('change', (e) => {
-                this.loadDashboardData(e.target.value);
+            // Filter Change
+            this.elements.dateFilter.addEventListener('change', () => {
+                this.loadData(); 
             });
         },
 
-        async loadDashboardData(days) {
+        async loadData() {
             this.toggleLoader(true);
             
-            // Simulate API Latency
-            const data = await this.fetchAnalyticsData(days);
-            
-            this.updateKPIs(data.stats);
-            this.renderTable(data.topServices);
-            this.renderChart(data.chartData);
-            this.renderMetricsSummary(data.metrics);
-            
-            this.toggleLoader(false);
+            try {
+                // Fetch from your dummy-data.json
+                const response = await fetch('dummy-data.json');
+                if (!response.ok) throw new Error('Data fetch failed');
+                const data = await response.json();
+
+                // Process UI components
+                this.updateKPIs(data.orders);
+                this.renderServicesTable(data.analytics.services);
+                this.renderRevenueMetrics(data.analytics.revenue);
+                this.initChart(data.analytics.revenue);
+
+            } catch (error) {
+                console.error("Analytics Error:", error);
+                this.elements.servicesTable.innerHTML = `<tr><td colspan="3" class="text-center">Failed to load analytics data.</td></tr>`;
+            } finally {
+                this.toggleLoader(false);
+            }
         },
 
-        // --- Bridge Logic: Data Fetching ---
-        async fetchAnalyticsData(days) {
-            // In a real MV3 app, this would use fetch() or chrome.storage
-            return new Promise((resolve) => {
-                setTimeout(() => {
-                    resolve({
-                        stats: {
-                            totalRevenue: `₹${(days * 1250).toLocaleString()}`,
-                            totalOrders: days * 12,
-                            avgOrder: `₹${(Math.random() * 500 + 500).toFixed(2)}`,
-                            netProfit: `₹${(days * 850).toLocaleString()}`
-                        },
-                        topServices: [
-                            { name: 'Cloud Migration', orders: days * 3, yield: 'High' },
-                            { name: 'Security Audit', orders: days * 2, yield: 'Medium' },
-                            { name: 'AI Integration', orders: Math.floor(days * 1.5), yield: 'Premium' }
-                        ],
-                        metrics: [
-                            { label: 'Growth', value: '+12.5%' },
-                            { label: 'Churn', value: '1.2%' },
-                            { label: 'Retention', value: '94%' }
-                        ],
-                        chartData: {
-                            labels: ['Week 1', 'Week 2', 'Week 3', 'Week 4'],
-                            values: [3000, 4500, 3200, 5000]
-                        }
-                    });
-                }, 800);
-            });
+        /**
+         * Dynamic KPI calculation from the orders array
+         */
+        updateKPIs(orders) {
+            const totalRevenue = orders.reduce((sum, ord) => sum + ord.grandTotal, 0);
+            const orderCount = orders.length;
+            const avgOrder = totalRevenue / orderCount;
+            const netProfit = totalRevenue * 0.65; // Example 65% margin logic
+
+            this.elements.kpiRevenue.textContent = `₹${totalRevenue.toLocaleString()}`;
+            this.elements.kpiOrders.textContent = orderCount;
+            this.elements.kpiAvg.textContent = `₹${avgOrder.toFixed(2)}`;
+            this.elements.kpiNet.textContent = `₹${netProfit.toLocaleString()}`;
         },
 
-        // --- UI Rendering Methods ---
-        updateKPIs(stats) {
-            this.elements.kpiRevenue.textContent = stats.totalRevenue;
-            this.elements.kpiOrders.textContent = stats.totalOrders;
-            this.elements.kpiAvg.textContent = stats.avgOrder;
-            this.elements.kpiNet.textContent = stats.netProfit;
-        },
-
-        renderTable(services) {
-            this.elements.servicesTable.innerHTML = services.map(s => `
+        /**
+         * Populates the "Top Performing Services" table
+         */
+        renderServicesTable(services) {
+            this.elements.servicesTable.innerHTML = services.map(service => `
                 <tr>
-                    <td>${s.name}</td>
-                    <td class="text-center">${s.orders}</td>
-                    <td class="text-right"><span class="badge">${s.yield}</span></td>
+                    <td>${service.name}</td>
+                    <td class="text-center">${service.count.toLocaleString()}</td>
+                    <td class="text-right">
+                        <span class="badge">${service.yield}</span>
+                    </td>
                 </tr>
             `).join('');
         },
 
-        renderMetricsSummary(metrics) {
-            this.elements.metricsSummary.innerHTML = metrics.map(m => `
+        /**
+         * Populates the revenue distribution metrics summary
+         */
+        renderRevenueMetrics(revenueData) {
+            this.elements.metricsSummary.innerHTML = revenueData.map(item => `
                 <div class="metric-item">
-                    <span class="metric-label">${m.label}</span>
-                    <span class="metric-value">${m.value}</span>
+                    <span class="metric-label">${item.label}</span>
+                    <span class="metric-value">${item.value}</span>
                 </div>
             `).join('');
         },
 
-        renderChart(data) {
-            if (this.chart) {
-                this.chart.destroy();
-            }
+        /**
+         * Initializes Chart.js using JSON data
+         */
+        initChart(revenueData) {
+            if (this.chart) this.chart.destroy();
 
             const ctx = this.elements.revenueChart.getContext('2d');
             
-            // Check if Chart.js is loaded (since it's deferred)
-            if (typeof Chart === 'undefined') return;
+            // Extract numerical values from strings like "₹ 92,450.00"
+            const chartLabels = revenueData.map(r => r.label);
+            const chartValues = revenueData.map(r => 
+                parseFloat(r.value.replace(/[₹, ]/g, ''))
+            );
 
             this.chart = new Chart(ctx, {
-                type: 'line',
+                type: 'doughnut',
                 data: {
-                    labels: data.labels,
+                    labels: chartLabels,
                     datasets: [{
-                        label: 'Revenue',
-                        data: data.values,
-                        borderColor: '#4361ee',
-                        backgroundColor: 'rgba(67, 97, 238, 0.1)',
-                        fill: true,
-                        tension: 0.4,
-                        borderWidth: 3,
-                        pointRadius: 4
+                        data: chartValues,
+                        backgroundColor: ['#4361ee', '#4cc9f0', '#3f37c9'],
+                        borderWidth: 2,
+                        hoverOffset: 4
                     }]
                 },
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
-                    plugins: { legend: { display: false } },
-                    scales: {
-                        y: { beginAtZero: true, grid: { display: false } },
-                        x: { grid: { display: false } }
-                    }
+                    plugins: {
+                        legend: { position: 'bottom' }
+                    },
+                    cutout: '70%'
                 }
             });
         },
 
         toggleLoader(show) {
-            this.elements.loader.style.display = show ? 'flex' : 'none';
+            if (this.elements.loader) {
+                this.elements.loader.style.display = show ? 'flex' : 'none';
+            }
         }
     };
 
