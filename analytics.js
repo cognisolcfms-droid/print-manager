@@ -1,145 +1,211 @@
 /**
  * CogniSol CFMS: Advanced Analytics Bridge
- * Developed for: Business Insights UI
- * Logic: Production Data -> Fallback to dummy-data.json
+ * Fix: Filename mismatch, CSP compliance, and IndexedDB integration
  */
 
+const DB_NAME = 'PrintingStoreDB';
+const ORDERS_STORE = 'orders';
+let myChart = null;
+
 document.addEventListener('DOMContentLoaded', () => {
-    const AnalyticsApp = {
-        chart: null,
-        
-        elements: {
-            backBtn: document.getElementById('backBtn'),
-            dateFilter: document.getElementById('date-filter'),
-            loader: document.getElementById('chart-loader'),
-            revenueChart: document.getElementById('revenueChart'),
-            kpiRevenue: document.getElementById('kpi-total-revenue'),
-            kpiOrders: document.getElementById('kpi-total-orders'),
-            kpiAvg: document.getElementById('kpi-avg-order'),
-            kpiNet: document.getElementById('kpi-net-profit'),
-            servicesTable: document.getElementById('top-services-body'),
-            metricsSummary: document.getElementById('revenue-metrics')
-        },
+    initAnalytics();
 
-        async init() {
-            this.bindEvents();
-            await this.refreshDashboard();
-        },
-
-        bindEvents() {
-            this.elements.backBtn.onclick = () => window.history.back();
-            this.elements.dateFilter.onchange = () => this.refreshDashboard();
-        },
-
-        /**
-         * Orchestrates data fetching with fallback bridge logic
-         */
-        async refreshDashboard() {
-            this.toggleLoader(true);
-            let data = null;
-
-            try {
-                // Primary Bridge: Attempt to fetch live data (Placeholder for your API)
-                // data = await this.fetchLiveAnalytics(); 
-                
-                if (!data) {
-                    console.warn("Live data unavailable. Engaging dummy-data.json fallback.");
-                    const response = await fetch('dummy-data.json');
-                    if (!response.ok) throw new Error("Fallback data source failed.");
-                    data = await response.json();
-                }
-
-                this.renderUI(data);
-
-            } catch (error) {
-                console.error("Critical Analytics Error:", error);
-                this.elements.servicesTable.innerHTML = `<tr><td colspan="3" style="text-align:center; padding: 20px;">Data source unreachable. Please check connection.</td></tr>`;
-            } finally {
-                this.toggleLoader(false);
-            }
-        },
-
-        renderUI(data) {
-            // 1. Process KPIs from the 'orders' array
-            this.calculateKPIs(data.orders);
-
-            // 2. Populate Top Services Table from 'analytics.services'
-            this.renderTable(data.analytics.services);
-
-            // 3. Populate Bottom Metrics from 'analytics.revenue'
-            this.renderMetrics(data.analytics.revenue);
-
-            // 4. Initialize Chart from 'analytics.revenue'
-            this.renderChart(data.analytics.revenue);
-        },
-
-        calculateKPIs(orders) {
-            const totalRevenue = orders.reduce((acc, obj) => acc + obj.grandTotal, 0);
-            const orderCount = orders.length;
-            const avgOrder = orderCount > 0 ? (totalRevenue / orderCount) : 0;
-
-            this.elements.kpiRevenue.textContent = `₹${totalRevenue.toLocaleString()}`;
-            this.elements.kpiOrders.textContent = orderCount;
-            this.elements.kpiAvg.textContent = `₹${avgOrder.toFixed(2)}`;
-            // Net Profit estimation (approx 65% after expenses)
-            this.elements.kpiNet.textContent = `₹${(totalRevenue * 0.65).toLocaleString()}`;
-        },
-
-        renderTable(services) {
-            this.elements.servicesTable.innerHTML = services.map(service => `
-                <tr>
-                    <td>${service.name}</td>
-                    <td class="text-center">${service.count.toLocaleString()}</td>
-                    <td class="text-right"><span class="badge">${service.yield}</span></td>
-                </tr>
-            `).join('');
-        },
-
-        renderMetrics(revenueData) {
-            this.elements.metricsSummary.innerHTML = revenueData.map(item => `
-                <div class="metric-item">
-                    <span class="metric-label">${item.label}</span>
-                    <span class="metric-value">${item.value}</span>
-                </div>
-            `).join('');
-        },
-
-        renderChart(revenueData) {
-            if (this.chart) this.chart.destroy();
-
-            const labels = revenueData.map(r => r.label);
-            // Parse numerical values from strings like "₹ 92,450.00"
-            const values = revenueData.map(r => parseFloat(r.value.replace(/[₹, ]/g, '')));
-
-            const ctx = this.elements.revenueChart.getContext('2d');
-            this.chart = new Chart(ctx, {
-                type: 'doughnut',
-                data: {
-                    labels: labels,
-                    datasets: [{
-                        data: values,
-                        backgroundColor: ['#4361ee', '#4cc9f0', '#3f37c9'],
-                        hoverOffset: 10,
-                        borderWidth: 0
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: { position: 'bottom', labels: { usePointStyle: true, padding: 20 } }
-                    },
-                    cutout: '75%'
-                }
-            });
-        },
-
-        toggleLoader(show) {
-            if (this.elements.loader) {
-                this.elements.loader.style.display = show ? 'flex' : 'none';
-            }
-        }
-    };
-
-    AnalyticsApp.init();
+    const backBtn = document.getElementById('backBtn');
+    if (backBtn) {
+        backBtn.addEventListener('click', () => window.history.back());
+    }
 });
+
+/* ==========================================
+   MAIN INITIALIZER
+========================================== */
+async function initAnalytics() {
+    toggleLoader(true);
+
+    if (!window.indexedDB) {
+        await loadFallbackData();
+        return;
+    }
+
+    try {
+        const request = indexedDB.open(DB_NAME);
+
+        request.onsuccess = (event) => {
+            const db = event.target.result;
+
+            if (!db.objectStoreNames.contains(ORDERS_STORE)) {
+                loadFallbackData();
+                return;
+            }
+
+            const tx = db.transaction([ORDERS_STORE], 'readonly');
+            const store = tx.objectStore(ORDERS_STORE);
+            const getAll = store.getAll();
+
+            getAll.onsuccess = () => {
+                if (!getAll.result || getAll.result.length === 0) {
+                    loadFallbackData();
+                    return;
+                }
+                const processed = processDBData(getAll.result);
+                renderUI(processed);
+                toggleLoader(false);
+            };
+
+            getAll.onerror = () => loadFallbackData();
+        };
+
+        request.onerror = () => loadFallbackData();
+
+    } catch (error) {
+        await loadFallbackData();
+    }
+}
+
+/* ==========================================
+   PROCESS REAL DB DATA
+========================================== */
+function processDBData(orders) {
+    const totalRevenue = orders.reduce((sum, order) => sum + (order.grandTotal || 0), 0);
+    const totalOrders = orders.length;
+    const avgOrder = totalOrders > 0 ? totalRevenue / totalOrders : 0;
+
+    const serviceMap = {};
+    orders.forEach(order => {
+        const name = order.customerName || "General Orders";
+        if (!serviceMap[name]) {
+            serviceMap[name] = { name, count: 0, total: 0 };
+        }
+        serviceMap[name].count += 1;
+        serviceMap[name].total += (order.grandTotal || 0);
+    });
+
+    const services = Object.values(serviceMap)
+        .sort((a, b) => b.total - a.total)
+        .map(service => ({
+            name: service.name,
+            count: service.count,
+            yield: `₹${service.total.toLocaleString('en-IN')}`
+        }));
+
+    return {
+        totalRevenue,
+        totalOrders,
+        avgOrder,
+        chartLabels: Object.keys(serviceMap),
+        chartValues: Object.values(serviceMap).map(s => s.total),
+        services
+    };
+}
+
+/* ==========================================
+   FALLBACK USING dummy_data.json
+========================================== */
+async function loadFallbackData() {
+    try {
+        // FIX: Ensure filename matches your actual file (dummy_data.json)
+        const response = await fetch('./dummy_data.json'); 
+        if (!response.ok) throw new Error("Fallback file not found");
+        
+        const data = await response.json();
+        const orders = data.orders || [];
+        const analytics = data.analytics || {};
+
+        const totalRevenue = orders.reduce((sum, order) => sum + (order.grandTotal || 0), 0);
+        const totalOrders = orders.length;
+        const avgOrder = totalOrders > 0 ? totalRevenue / totalOrders : 0;
+
+        const chartLabels = (analytics.revenue || []).map(r => r.label);
+        const chartValues = (analytics.revenue || []).map(r =>
+            parseFloat(r.value.replace(/[₹,\s]/g, ''))
+        );
+
+        const services = (analytics.services || []).map(service => ({
+            name: service.name,
+            count: service.count,
+            yield: service.yield
+        }));
+
+        renderUI({ totalRevenue, totalOrders, avgOrder, chartLabels, chartValues, services });
+
+    } catch (error) {
+        console.error("Critical Analytics Error:", error);
+        renderUI(emptyState());
+    } finally {
+        toggleLoader(false);
+    }
+}
+
+/* ==========================================
+   RENDER UI
+========================================== */
+function renderUI(data) {
+    document.getElementById('kpi-total-revenue').textContent = `₹${data.totalRevenue.toLocaleString('en-IN')}`;
+    document.getElementById('kpi-total-orders').textContent = data.totalOrders;
+    document.getElementById('kpi-avg-order').textContent = `₹${Math.round(data.avgOrder).toLocaleString('en-IN')}`;
+    document.getElementById('kpi-net-profit').textContent = `₹${(data.totalRevenue * 0.7).toLocaleString('en-IN')}`;
+
+    renderChart(data.chartLabels, data.chartValues);
+    renderServices(data.services);
+}
+
+function renderChart(labels, values) {
+    const canvas = document.getElementById('revenueChart');
+    if (!canvas) return;
+
+    const ctx = canvas.getContext('2d');
+    if (myChart) myChart.destroy();
+
+    myChart = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: labels.length ? labels : ['No Data'],
+            datasets: [{
+                data: values.length ? values : [1],
+                backgroundColor: ['#4361ee', '#4cc9f0', '#3f37c9', '#f72585']
+            }]
+        },
+        options: {
+            maintainAspectRatio: false,
+            cutout: '70%',
+            plugins: { legend: { position: 'bottom' } }
+        }
+    });
+}
+
+function renderServices(services) {
+    const tableBody = document.getElementById('top-services-body');
+    if (!tableBody) return;
+
+    if (!services || services.length === 0) {
+        tableBody.innerHTML = `<tr><td colspan="3" class="text-center">No Data</td></tr>`;
+        return;
+    }
+
+    tableBody.innerHTML = services.map(service => `
+        <tr>
+            <td><strong>${service.name}</strong></td>
+            <td class="text-center">${service.count}</td>
+            <td class="text-right"><span class="badge">${service.yield}</span></td>
+        </tr>
+    `).join('');
+}
+
+/**
+ * FIX: CSP Compliant Loader Toggle
+ * Uses classList instead of .style.display
+ */
+function toggleLoader(show) {
+    const loader = document.getElementById('chart-loader');
+    if (!loader) return;
+    
+    if (show) {
+        loader.classList.remove('hidden');
+    } else {
+        loader.classList.add('hidden');
+    }
+}
+
+function emptyState() {
+    return { totalRevenue: 0, totalOrders: 0, avgOrder: 0, chartLabels: [], chartValues: [], services: [] };
+}
