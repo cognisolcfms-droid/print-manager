@@ -102,6 +102,11 @@ function initSlider() {
 }
 
 // --- 4. Google Ad Manager ---
+/**
+ * CogniSol | CFMS - Resilient Dashboard Logic
+ * Updated to handle CORS/400 errors without breaking the UI.
+ */
+
 // --- 1. Google Ad Manager Init (Safe Mode) ---
 window.googletag = window.googletag || {cmd: []};
 
@@ -112,36 +117,40 @@ googletag.cmd.push(function() {
                  .addService(googletag.pubads());
         
         // Tells Google to collapse the div if the ad fails to load (prevents layout shift)
-        googletag.pubads().collapseEmptyDivs();
+        // This is the key to preventing the "breaking" UI feel
+        googletag.pubads().collapseEmptyDivs(true); 
         googletag.pubads().enableSingleRequest();
         googletag.enableServices();
     } catch (e) {
-        // Silently catch initialization errors
+        // Silently catch initialization errors to prevent script crashes
+        console.debug("Ad Manager initialization skipped.");
     }
 });
 
 // --- 2. Start Everything ---
 document.addEventListener('DOMContentLoaded', () => {
-    // Run core app logic
-    fetchDashboardData();
-    initSlider();
+    // Run core app logic first to ensure the dashboard works regardless of ads
+    if (typeof fetchDashboardData === "function") fetchDashboardData();
+    if (typeof initSlider === "function") initSlider();
 
     // Safe Ad Display Call
     googletag.cmd.push(() => {
         try {
+            const adContainer = document.getElementById('div-gpt-ad-dashboard-top');
             // Only attempt display if the div exists to avoid DOM errors
-            if(document.getElementById('div-gpt-ad-dashboard-top')) {
+            if(adContainer) {
                 googletag.display('div-gpt-ad-dashboard-top');
             }
         } catch (err) {
-            // This prevents the CORS/400 error from appearing as a crash
-            console.log("Dashboard Info: Ad module deferred.");
+            // This prevents the CORS/400 error from appearing as a functional crash
+            console.log("Dashboard Info: Ad module deferred due to environment restrictions.");
         }
     });
 
-    // Check for AdBlock/CORS after delay without using .style
+    // Handle AdBlock/CORS after delay without direct style manipulation
     setTimeout(() => {
         const adSlot = document.getElementById('div-gpt-ad-dashboard-top');
+        // If the slot didn't load (CORS error or AdBlock), apply a CSS class
         if (adSlot && adSlot.offsetHeight === 0) {
             // Using a class instead of .style to stay CSP compliant
             adSlot.classList.add('ad-placeholder'); 
@@ -153,6 +162,6 @@ document.addEventListener('DOMContentLoaded', () => {
 // --- 3. Navigation Bridge ---
 function goBackToApp(tabName) {
     const urlParams = new URLSearchParams(window.location.search);
-    const extensionId = urlParams.get('extId') || "iagnoejddgdhabnaecdgkdehomdhglkg"; 
+    const extensionId = urlParams.get('extId') || "iagnoejddgdhabnaecdgkdehomdhglkg";
     window.location.href = `chrome-extension://${extensionId}/index.html?tab=${tabName}`;
 }
