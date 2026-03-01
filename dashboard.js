@@ -1,7 +1,6 @@
 /**
- * CogniSol | CFMS - Complete Dashboard Logic
- * Version: 1.1.2 - Production Ready
- * Fixes: Removed demo data, integrated dummy_data.json, and resilient ad-fallback.
+ * CogniSol | CFMS - Production Dashboard Logic
+ * Clean version: Removed demo constants, using dummy_data.json as primary fallback.
  */
 
 const DB_NAME = 'PrintingStoreDB';
@@ -20,7 +19,7 @@ async function fetchDashboardData() {
             const getRequest = store.getAll();
 
             getRequest.onsuccess = () => {
-                // If IndexedDB has user data, use it; otherwise, go to dummy_data.json
+                // Use user data if present; otherwise, load from dummy_data.json
                 if (getRequest.result && getRequest.result.length > 0) {
                     renderUI(getRequest.result);
                 } else {
@@ -36,7 +35,6 @@ async function fetchDashboardData() {
     request.onerror = () => loadFallbackData();
 }
 
-// Fetch from the deployed dummy_data.json
 async function loadFallbackData() {
     console.log("CogniSol CFMS: Accessing business insights from dummy_data.json...");
     try {
@@ -56,6 +54,7 @@ function renderUI(orders) {
 
     const orderList = Array.isArray(orders) ? orders : [];
     
+    // Sort by date and take the 5 most recent
     const recent = [...orderList]
         .sort((a, b) => new Date(b.orderDate) - new Date(a.orderDate))
         .slice(0, 5);
@@ -63,8 +62,11 @@ function renderUI(orders) {
     const totalRev = orderList.reduce((sum, o) => sum + (parseFloat(o.grandTotal) || 0), 0);
     
     // Update KPI counters
-    document.getElementById('dash-total-revenue').textContent = `₹ ${totalRev.toLocaleString('en-IN', {minimumFractionDigits: 2})}`;
-    document.getElementById('dash-today-orders').textContent = orderList.length;
+    const revEl = document.getElementById('dash-total-revenue');
+    const countEl = document.getElementById('dash-today-orders');
+    
+    if (revEl) revEl.textContent = `₹ ${totalRev.toLocaleString('en-IN', {minimumFractionDigits: 2})}`;
+    if (countEl) countEl.textContent = orderList.length;
 
     // Populate Table
     tableBody.innerHTML = recent.map(o => `
@@ -78,24 +80,28 @@ function renderUI(orders) {
     `).join('');
 }
 
-// --- 3. Rotating Slider Logic ---
+// --- 3. Rotating Slider ---
 function initSlider() {
+    const slider = document.getElementById('mainSlider');
     const imgs = document.querySelectorAll('.fallback-img');
-    if (imgs.length <= 1) return;
+    if (!slider || imgs.length <= 1) return;
 
     let index = 0;
-    // Clear any existing active classes first
-    imgs.forEach(img => img.classList.remove('active'));
-    imgs[0].classList.add('active');
+    let paused = false;
+
+    slider.addEventListener('mouseenter', () => paused = true);
+    slider.addEventListener('mouseleave', () => paused = false);
 
     setInterval(() => {
-        imgs[index].classList.remove('active');
-        index = (index + 1) % imgs.length;
-        imgs[index].classList.add('active');
+        if (!paused) {
+            imgs[index].classList.remove('active');
+            index = (index + 1) % imgs.length;
+            imgs[index].classList.add('active');
+        }
     }, 5000);
 }
 
-// --- 4. Google Ad Manager (Safe Mode) ---
+// --- 4. Google Ad Manager Init (Safe Mode) ---
 window.googletag = window.googletag || {cmd: []};
 
 googletag.cmd.push(function() {
@@ -103,44 +109,40 @@ googletag.cmd.push(function() {
         googletag.defineSlot('/12345678/Dashboard_Top', [1100, 340], 'div-gpt-ad-dashboard-top')
                  .addService(googletag.pubads());
         
-        // Collapse the slot if the 400/CORS error occurs to prevent UI gaps
+        // Collapse empty divs to prevent layout shifts on load failure
         googletag.pubads().collapseEmptyDivs(true); 
         googletag.pubads().enableSingleRequest();
         googletag.enableServices();
     } catch (e) {
-        console.debug("Ad Manager deferred.");
+        console.debug("Ad Manager initialization deferred.");
     }
 });
 
 // --- 5. Lifecycle Controller ---
 document.addEventListener('DOMContentLoaded', () => {
-    // 1. Prioritize Dashboard Data
+    // 1. Load Data
     fetchDashboardData();
+    
+    // 2. Initialize UI Components
+    initSlider();
 
-    // 2. Safe Ad Load
+    // 3. Safe Ad Display Call
     googletag.cmd.push(() => {
         try {
-            const adContainer = document.getElementById('div-gpt-ad-dashboard-top');
-            if(adContainer) {
+            if(document.getElementById('div-gpt-ad-dashboard-top')) {
                 googletag.display('div-gpt-ad-dashboard-top');
             }
         } catch (err) {
-            console.log("Ad display deferred.");
+            console.log("Ad module deferred.");
         }
     });
 
-    // 3. Fallback Detection: Show Slider if Ad Fails
+    // 4. Post-load Optimization
     setTimeout(() => {
         const adSlot = document.getElementById('div-gpt-ad-dashboard-top');
-        // If Google slot height is 0 (blocked/error), show the fallback slider
         if (adSlot && adSlot.offsetHeight === 0) {
             adSlot.classList.add('ad-placeholder'); 
-            const fallbackWrapper = adSlot.querySelector('.ad-fallback-wrapper');
-            if (fallbackWrapper) {
-                fallbackWrapper.style.display = 'block';
-                initSlider();
-            }
-            console.info("Optimization: Local assets loaded as primary view.");
+            console.info("Notice: Dashboard optimized for current network environment.");
         }
     }, 3000);
 });
