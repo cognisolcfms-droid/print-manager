@@ -7,7 +7,7 @@ const ORDERS_STORE = 'orders';
 let myChart = null; 
 
 async function initAnalytics() {
-    console.log("Analytics: Initializing Data Bridge (Ads Disabled)...");
+    console.log("Analytics: Initializing Data Bridge...");
     
     if (window.indexedDB) {
         const request = indexedDB.open(DB_NAME);
@@ -134,3 +134,4 @@ function renderUI(data) {
 
 // Start once DOM is ready
 document.addEventListener('DOMContentLoaded', initAnalytics);
+
