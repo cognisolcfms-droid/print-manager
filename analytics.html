@@ -6,14 +6,14 @@
     <title>Business Insights - CogniSol | CFMS</title>
     
     <meta http-equiv="Content-Security-Policy" content="
-    default-src 'self'; 
-    script-src 'self' 'unsafe-inline' 'unsafe-eval' https://securepubads.g.doubleclick.net https://www.googletagservices.com https://cdn.ampproject.org https://*.googlesyndication.com https://*.google.com; 
-    style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; 
-    img-src 'self' https://*.doubleclick.net https://*.google.com https://*.googlesyndication.com https://*.google.co.in data:; 
-    frame-src 'self' https://*.doubleclick.net https://*.google.com https://*.googlesyndication.com https://googleads.g.doubleclick.net;
-    connect-src 'self' https://securepubads.g.doubleclick.net https://cdn.ampproject.org https://*.google-analytics.com https://*.adtrafficquality.google https://*.googlesyndication.com;
-    font-src 'self' https://fonts.gstatic.com;
-">
+        default-src 'self'; 
+        script-src 'self' 'unsafe-inline' 'unsafe-eval' https://securepubads.g.doubleclick.net https://www.googletagservices.com https://*.googlesyndication.com https://*.google.com; 
+        style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; 
+        img-src 'self' https://*.doubleclick.net https://*.google.com https://*.googlesyndication.com data:; 
+        frame-src 'self' https://*.doubleclick.net https://*.google.com https://*.googlesyndication.com https://googleads.g.doubleclick.net;
+        connect-src 'self' https://securepubads.g.doubleclick.net https://*.googlesyndication.com https://pagead2.googlesyndication.com;
+        font-src 'self' https://fonts.gstatic.com;
+    ">
     
     <link rel="stylesheet" href="analytics.css">
     <script src="lib/chart.min.js"></script>
@@ -36,7 +36,7 @@
             <div class="analytics-card main-chart-card">
                 <div class="card-header">
                     <h3>Revenue Distribution</h3>
-                    <span class="badge">Live Analytics</span>
+                    <span class="badge">Live Data</span>
                 </div>
                 <div class="chart-container" style="position: relative; height:300px;">
                     <canvas id="revenueChart"></canvas>
@@ -57,8 +57,7 @@
                                 <th class="text-right">Yield</th>
                             </tr>
                         </thead>
-                        <tbody id="top-services-body">
-                            </tbody>
+                        <tbody id="top-services-body"></tbody>
                     </table>
                 </div>
             </div>
@@ -67,11 +66,10 @@
         <div id="div-gpt-ad-analytics-bottom" class="ad-container-bottom" style="min-height: 250px;"></div>
 
         <footer class="analytics-footer">
-            <p>© 2026 CogniSol | CFMS • <a href="privacy.html">Privacy & Terms</a></p>
+            <p>© 2026 CogniSol | CFMS • <a href="privacy.html">Privacy Policy</a></p>
         </footer>
     </div>
 
     <script src="analytics.js"></script>
 </body>
 </html>
-
