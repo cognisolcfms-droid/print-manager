@@ -5,11 +5,10 @@ let myChart = null;
 document.addEventListener('DOMContentLoaded', () => {
     initAnalytics();
 
-    document.getElementById('backBtn')
-        ?.addEventListener('click', () => window.history.back());
-
-    document.getElementById('exportBtn')
-        ?.addEventListener('click', exportAnalytics);
+    const backBtn = document.getElementById('backBtn');
+    if (backBtn) {
+        backBtn.addEventListener('click', () => window.history.back());
+    }
 });
 
 
@@ -19,9 +18,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 async function initAnalytics() {
 
-    // 1️⃣ If IndexedDB not supported
     if (!window.indexedDB) {
-        console.warn("IndexedDB not supported. Loading fallback data...");
         await loadFallbackData();
         return;
     }
@@ -32,9 +29,7 @@ async function initAnalytics() {
         request.onsuccess = async (event) => {
             const db = event.target.result;
 
-            // 2️⃣ If object store missing
             if (!db.objectStoreNames.contains(ORDERS_STORE)) {
-                console.warn("Orders store not found. Loading fallback...");
                 await loadFallbackData();
                 return;
             }
@@ -44,31 +39,24 @@ async function initAnalytics() {
             const getAll = store.getAll();
 
             getAll.onsuccess = async () => {
-
-                // 3️⃣ If no data available
                 if (!getAll.result || getAll.result.length === 0) {
-                    console.warn("No orders found. Loading fallback...");
                     await loadFallbackData();
                     return;
                 }
 
-                const processed = processData(getAll.result);
-                renderUI(processed);
+                renderUI(processData(getAll.result));
             };
 
             getAll.onerror = async () => {
-                console.warn("Error reading DB. Loading fallback...");
                 await loadFallbackData();
             };
         };
 
         request.onerror = async () => {
-            console.warn("DB open failed. Loading fallback...");
             await loadFallbackData();
         };
 
     } catch (error) {
-        console.error("Unexpected DB error:", error);
         await loadFallbackData();
     }
 }
@@ -82,18 +70,8 @@ async function loadFallbackData() {
     try {
         const response = await fetch('./dummy_data.json');
         const data = await response.json();
-
-        if (!data.orders || data.orders.length === 0) {
-            console.warn("Fallback JSON empty.");
-            renderUI(processData([]));
-            return;
-        }
-
-        const processed = processData(data.orders);
-        renderUI(processed);
-
+        renderUI(processData(data.orders || []));
     } catch (error) {
-        console.error("Fallback loading failed:", error);
         renderUI(processData([]));
     }
 }
@@ -137,7 +115,6 @@ function processData(orders) {
 
 function renderUI(data) {
 
-    // KPI
     document.getElementById('kpi-total-revenue').textContent =
         `₹${data.totalRevenue.toLocaleString('en-IN')}`;
 
@@ -161,7 +138,7 @@ function renderUI(data) {
 function renderChart(labels, values) {
 
     const loader = document.getElementById('chart-loader');
-    if (loader) loader.style.display = "none";
+    if (loader) loader.classList.add('hidden');
 
     const canvas = document.getElementById('revenueChart');
     if (!canvas) return;
@@ -189,13 +166,4 @@ function renderChart(labels, values) {
             }
         }
     });
-}
-
-
-/* ==============================
-   EXPORT PLACEHOLDER
-================================= */
-
-function exportAnalytics() {
-    console.log("Export CSV triggered.");
 }
