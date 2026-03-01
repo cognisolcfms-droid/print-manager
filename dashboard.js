@@ -102,30 +102,59 @@ function initSlider() {
 }
 
 // --- 4. Google Ad Manager ---
-window.googletag = window.googletag || {cmd: []};
+// 1. Google Ad Manager Init with Error Guard
+window.googletag = window.googletag || { cmd: [] };
+
 googletag.cmd.push(function() {
-    googletag.defineSlot('/12345678/Dashboard_Top', [1100, 340], 'div-gpt-ad-dashboard-top')
-             .addService(googletag.pubads());
-    googletag.pubads().enableSingleRequest();
-    googletag.enableServices();
+    try {
+        // Define slot but catch potential initialization errors
+        googletag.defineSlot('/12345678/Dashboard_Top', [1100, 340], 'div-gpt-ad-dashboard-top')
+                 .addService(googletag.pubads());
+        
+        // Optimize for single request to reduce console noise
+        googletag.pubads().enableSingleRequest();
+        
+        // Collapse empty divs if CORS or AdBlock stops the fetch
+        googletag.pubads().collapseEmptyDivs(); 
+        
+        googletag.enableServices();
+    } catch (e) {
+        console.info("GAM: Ad services initialization skipped.");
+    }
 });
 
+// 2. Updated Start Everything
 document.addEventListener('DOMContentLoaded', () => {
+    // Critical App Logic First
     fetchDashboardData();
     initSlider();
-    googletag.cmd.push(() => googletag.display('div-gpt-ad-dashboard-top'));
 
-    // AdBlock Detection - Fixed to avoid .style manipulation
+    // Push display command safely
+    googletag.cmd.push(() => {
+        try {
+            googletag.display('div-gpt-ad-dashboard-top');
+        } catch (e) {
+            console.warn("GAM: Display failed due to CORS/AdBlock.");
+        }
+    });
+
+    /**
+     * AdBlock & CORS Detection
+     * Uses classList to stay CSP compliant (no .style manipulation)
+     */
     setTimeout(() => {
         const adSlot = document.getElementById('div-gpt-ad-dashboard-top');
+        // If height is 0, the browser blocked the 'securepubads' fetch (CORS/AdBlock)
         if (adSlot && adSlot.offsetHeight === 0) {
-            console.warn("AdSense blocked. Notifying user...");
+            console.warn("CogniSol CFMS: Ad content blocked by CORS/Browser. Engaging fallback wrapper.");
+            adSlot.classList.add('ad-blocked-fallback');
         }
     }, 3000);
 });
 
+// 3. Navigation Bridge
 function goBackToApp(tabName) {
     const urlParams = new URLSearchParams(window.location.search);
-    let extensionId = urlParams.get('extId') || "iagnoejddgdhabnaecdgkdehomdhglkg"; 
+    const extensionId = urlParams.get('extId') || "iagnoejddgdhabnaecdgkdehomdhglkg"; 
     window.location.href = `chrome-extension://${extensionId}/index.html?tab=${tabName}`;
 }
