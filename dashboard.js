@@ -13,48 +13,72 @@ const demoOrders = [
     { orderId: 'ORD-8823', customerName: 'Local School', orderDate: new Date().toISOString(), grandTotal: 125.50 }
 ];
 
-// 1. Data Management (The Bridge)
+// --- 1. Data Management (The Bridge) ---
 async function fetchDashboardData() {
-    const isLocal = window.location.protocol === 'chrome-extension:' || window.location.hostname === 'localhost';
-    
     const request = indexedDB.open(DB_NAME);
 
     request.onsuccess = (event) => {
         const db = event.target.result;
         
-        // If store doesn't exist (Remote GitHub view), show Demo Data
-        if (!db.objectStoreNames.contains(ORDERS_STORE)) {
-            renderUI(demoOrders);
-            return;
+        // If DB exists, attempt to pull real user data
+        if (db.objectStoreNames.contains(ORDERS_STORE)) {
+            const transaction = db.transaction([ORDERS_STORE], 'readonly');
+            const store = transaction.objectStore(ORDERS_STORE);
+            const getRequest = store.getAll();
+
+            getRequest.onsuccess = () => {
+                if (getRequest.result && getRequest.result.length > 0) {
+                    renderUI(getRequest.result);
+                } else {
+                    // DB exists but is empty, load fallback JSON
+                    loadFallbackData();
+                }
+            };
+            getRequest.onerror = () => loadFallbackData();
+        } else {
+            // Not running in Chrome Extension environment, load fallback
+            loadFallbackData();
         }
-
-        const transaction = db.transaction([ORDERS_STORE], 'readonly');
-        const store = transaction.objectStore(ORDERS_STORE);
-        const getRequest = store.getAll();
-
-        getRequest.onsuccess = () => {
-            const data = getRequest.result.length > 0 ? getRequest.result : demoOrders;
-            renderUI(data);
-        };
     };
 
-    request.onerror = () => renderUI(demoOrders);
+    request.onerror = () => loadFallbackData();
 }
 
+// Fetch dummy data from your GitHub root to satisfy Google Bot
+async function loadFallbackData() {
+    console.log("CogniSol CFMS: Loading fallback analytics...");
+    try {
+        const response = await fetch('./dummy_data.json');
+        const data = await response.json();
+        // Assuming your JSON has an "orders" key
+        renderUI(data.orders);
+    } catch (error) {
+        console.warn("Fallback JSON not found, using internal demo data.");
+        renderUI(demoOrders);
+    }
+}
+
+// --- 2. UI Rendering Logic ---
 function renderUI(orders) {
     const tableBody = document.getElementById('recent-orders-body');
-    const recent = [...orders].sort((a, b) => new Date(b.orderDate) - new Date(a.orderDate)).slice(0, 5);
+    // Ensure orders is an array before sorting
+    const orderList = Array.isArray(orders) ? orders : [];
     
-    const totalRev = orders.reduce((sum, o) => sum + (o.grandTotal || 0), 0);
+    const recent = [...orderList]
+        .sort((a, b) => new Date(b.orderDate) - new Date(a.orderDate))
+        .slice(0, 5);
+    
+    const totalRev = orderList.reduce((sum, o) => sum + (parseFloat(o.grandTotal) || 0), 0);
+    
     document.getElementById('dash-total-revenue').textContent = `₹ ${totalRev.toLocaleString('en-IN', {minimumFractionDigits: 2})}`;
-    document.getElementById('dash-today-orders').textContent = orders.length;
+    document.getElementById('dash-today-orders').textContent = orderList.length;
 
     tableBody.innerHTML = recent.map(o => `
         <tr>
-            <td>#${o.orderId ? o.orderId.slice(-6) : 'N/A'}</td>
+            <td>#${o.orderId ? o.orderId.toString().slice(-6) : 'N/A'}</td>
             <td>${o.customerName || 'Walking Customer'}</td>
             <td>${new Date(o.orderDate).toLocaleDateString()}</td>
-            <td>₹${(o.grandTotal || 0).toFixed(2)}</td>
+            <td>₹${(parseFloat(o.grandTotal) || 0).toFixed(2)}</td>
             <td><span class="status-badge">Completed</span></td>
         </tr>
     `).join('');
@@ -90,23 +114,30 @@ googletag.cmd.push(function() {
     googletag.enableServices();
 });
 
-// Start Everything
+// Updated Start Everything with Ad-Block Detection
 document.addEventListener('DOMContentLoaded', () => {
     fetchDashboardData();
     initSlider();
     googletag.cmd.push(() => googletag.display('div-gpt-ad-dashboard-top'));
 
+    // AdBlock Detection for Revenue Protection
+    setTimeout(() => {
+        const adSlot = document.getElementById('div-gpt-ad-dashboard-top');
+        if (adSlot && adSlot.offsetHeight === 0) {
+            console.warn("AdSense blocked. Notifying user...");
+            // Optional: You can trigger a small UI toast here
+        }
+    }, 3000);
 });
 function goBackToApp(tabName) {
     // 1. Try to get the ID from the URL (passed by idlehandler)
     const urlParams = new URLSearchParams(window.location.search);
     let extensionId = urlParams.get('extId');
     
-    // 2. Fallback to your known ID if the URL is clean (like for AdSense reviewers)
+    // 2. Fallback to your known ID if the URL is clean 
     if (!extensionId) {
         extensionId = "iagnoejddgdhabnaecdgkdehomdhglkg"; 
     }
     
     window.location.href = `chrome-extension://${extensionId}/index.html?tab=${tabName}`;
 }
-
