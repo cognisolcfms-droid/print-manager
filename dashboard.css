@@ -147,3 +147,22 @@
 .recent-orders-table { width: 100%; border-collapse: collapse; }
 .recent-orders-table th, .recent-orders-table td { padding: 12px; text-align: left; border-bottom: 1px solid #eee; }
 .status-badge { background: #d4edda; color: #155724; padding: 4px 8px; border-radius: 4px; font-size: 0.8rem; }
+/* Replaces the inline margin-top: 10px */
+.footer-nav {
+    margin-top: 10px;
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+    align-items: center;
+}
+
+.footer-separator {
+    color: var(--text-muted);
+    opacity: 0.5;
+}
+
+.license-text {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    margin-top: 5px;
+}
