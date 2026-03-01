@@ -313,3 +313,7 @@ tr:last-child td {
     font-weight: 600;
     border-radius: var(--radius);
 }
+.hidden {
+    display: none !important;
+}
+
