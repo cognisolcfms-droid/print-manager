@@ -3,75 +3,69 @@ const ORDERS_STORE = 'orders';
 let myChart = null; 
 
 /**
- * 1. Data Bridge Initialization
+ * 1. Data Initialization Bridge
  */
 async function initAnalytics() {
     console.log("Analytics: Initializing Data Bridge...");
     
-    if (window.indexedDB) {
-        const request = indexedDB.open(DB_NAME);
+    if (!window.indexedDB) {
+        loadJSONFallback();
+        return;
+    }
 
-        request.onsuccess = (event) => {
-            const db = event.target.result;
-            
-            if (db.objectStoreNames.contains(ORDERS_STORE)) {
-                const transaction = db.transaction([ORDERS_STORE], 'readonly');
-                const store = transaction.objectStore(ORDERS_STORE);
-                const getRequest = store.getAll();
+    const request = indexedDB.open(DB_NAME);
 
-                getRequest.onsuccess = () => {
-                    if (getRequest.result && getRequest.result.length > 0) {
-                        console.log("Analytics: Local data found.");
-                        renderUI(processRealData(getRequest.result));
-                    } else {
-                        loadJSONFallback(); 
-                    }
-                };
+    request.onsuccess = (event) => {
+        const db = event.target.result;
+        
+        if (!db.objectStoreNames.contains(ORDERS_STORE)) {
+            console.log("Store not found. Loading JSON fallback.");
+            loadJSONFallback();
+            return;
+        }
+
+        const transaction = db.transaction([ORDERS_STORE], 'readonly');
+        const store = transaction.objectStore(ORDERS_STORE);
+        const getRequest = store.getAll();
+
+        getRequest.onsuccess = () => {
+            if (getRequest.result && getRequest.result.length > 0) {
+                renderUI(processRealData(getRequest.result));
             } else {
-                console.log("Analytics: Store not found. Loading Fallback.");
-                loadJSONFallback(); 
+                loadJSONFallback();
             }
         };
+    };
 
-        request.onerror = () => loadJSONFallback();
-    } else {
-        loadJSONFallback();
-    }
+    request.onerror = () => loadJSONFallback();
 }
 
 /**
- * 2. Remote/Bot Fallback
+ * 2. Fallback Logic
  */
 async function loadJSONFallback() {
     try {
-        console.log("Analytics: Fetching dummy_data.json...");
         const response = await fetch('./dummy_data.json');
-        const data = await response.json();
+        if (!response.ok) throw new Error("Fallback data missing.");
         
-        // Match the dummy_data.json format to our UI needs
-        const processedData = {
-            labels: ["Digital Payment", "Cash", "Pending"],
-            values: [
-                data.orders.filter(o => o.grandTotal > 5000).reduce((s, o) => s + o.grandTotal, 0),
-                data.orders.filter(o => o.grandTotal <= 5000).reduce((s, o) => s + o.grandTotal, 0),
-                500 // Sample pending value
-            ],
-            services: [
-                { name: "Premium Printing", count: 15, yield: 12500 },
-                { name: "Bulk Photocopy", count: 45, yield: 2250 },
-                { name: "Graphic Design", count: 5, yield: 7500 }
-            ]
+        const data = await response.json();
+        console.log("CogniSol CFMS: Successfully loaded dummy_data.json");
+
+        const processed = {
+            labels: data.analytics.revenue.map(r => r.label),
+            values: data.analytics.revenue.map(r => parseFloat(r.value.replace(/[₹, ]/g, ''))),
+            services: data.analytics.services
         };
 
-        renderUI(processedData);
-        console.log("Analytics: Fallback UI Rendered.");
+        renderUI(processed);
     } catch (error) {
-        console.error("Analytics Error:", error);
+        console.error("Bridge Failure:", error);
+        renderUI({ labels: [], values: [], services: [] });
     }
 }
 
 /**
- * 3. Real Data Processing
+ * 3. Data Processor
  */
 function processRealData(orders) {
     const paymentMap = orders.reduce((acc, o) => {
@@ -83,71 +77,69 @@ function processRealData(orders) {
     return {
         labels: Object.keys(paymentMap),
         values: Object.values(paymentMap),
-        services: [{ 
-            name: "Local Operations", 
-            count: orders.length, 
-            yield: orders.reduce((s,o) => s + o.grandTotal, 0) 
-        }]
+        services: [
+            { 
+                name: "Real Time Sales", 
+                count: orders.length, 
+                yield: orders.reduce((s,o) => s + (o.grandTotal || 0), 0) 
+            }
+        ]
     };
 }
 
 /**
- * 4. UI Rendering (Chart.js)
+ * 4. UI Rendering
  */
 function renderUI(data) {
-    // Render Table
+    // Table
     const tableBody = document.getElementById('top-services-body');
-    if(tableBody) {
+    if (data.services.length === 0) {
+        tableBody.innerHTML = '<tr><td colspan="3" class="text-center">No data available</td></tr>';
+    } else {
         tableBody.innerHTML = data.services.map(s => `
             <tr>
                 <td><strong>${s.name}</strong></td>
                 <td class="text-center">${s.count}</td>
                 <td class="text-right" style="color:#4361ee; font-weight:700;">
-                    ₹${s.yield.toLocaleString('en-IN')}
+                    ${typeof s.yield === 'string' ? s.yield : '₹' + s.yield.toLocaleString('en-IN')}
                 </td>
             </tr>
         `).join('');
     }
 
-    // Render Chart
-    const canvas = document.getElementById('revenueChart');
-    if(canvas) {
-        const ctx = canvas.getContext('2d');
-        if (myChart) myChart.destroy();
-        
-        myChart = new Chart(ctx, {
-            type: 'doughnut',
-            data: {
-                labels: data.labels,
-                datasets: [{
-                    data: data.values,
-                    backgroundColor: ['#4361ee', '#4cc9f0', '#3f37c9', '#f72585'],
-                    borderWidth: 0,
-                    hoverOffset: 20
-                }]
-            },
-            options: {
-                maintainAspectRatio: false,
-                plugins: { legend: { position: 'bottom', labels: { usePointStyle: true } } },
-                cutout: '75%'
-            }
-        });
-    }
+    // Chart
+    const ctx = document.getElementById('revenueChart').getContext('2d');
+    if (myChart) myChart.destroy();
+    
+    myChart = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: data.labels,
+            datasets: [{
+                data: data.values,
+                backgroundColor: ['#4361ee', '#4cc9f0', '#3f37c9', '#f72585'],
+                borderWidth: 0
+            }]
+        },
+        options: {
+            maintainAspectRatio: false,
+            plugins: { legend: { position: 'bottom', labels: { usePointStyle: true } } },
+            cutout: '75%'
+        }
+    });
 
-    // Render Metrics
+    // Metrics Text
     const metricsDiv = document.getElementById('revenue-metrics');
-    if(metricsDiv) {
-        metricsDiv.innerHTML = data.labels.map((l, i) => `
-            <div class="metric-item">
-                <span class="metric-label">${l}</span>
-                <span class="metric-value">₹${data.values[i].toLocaleString('en-IN')}</span>
-            </div>
-        `).join('');
-    }
+    metricsDiv.innerHTML = data.labels.map((l, i) => `
+        <div class="metric-item">
+            <span class="metric-label">${l}</span>
+            <span class="metric-value">₹${data.values[i].toLocaleString('en-IN')}</span>
+        </div>
+    `).join('');
 }
 
 /**
- * 5. AdSense / GPT Setup
+ * 5. Google Ad Management
  */
 window.googletag = window.googletag || {cmd: []};
 googletag.cmd.push(function() {
