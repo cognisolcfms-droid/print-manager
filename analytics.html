@@ -2,112 +2,127 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Business Insights - CogniSol | CFMS</title>
-    
- <meta http-equiv="Content-Security-Policy" content="
-    default-src 'self'; 
-    script-src 'self' 'unsafe-inline' 'unsafe-eval'
-        https://securepubads.g.doubleclick.net 
-        https://www.googletagservices.com 
-        https://cdn.ampproject.org 
-        https://pagead2.googlesyndication.com; 
-    style-src 'self' 'unsafe-inline' 
-        https://fonts.googleapis.com; 
-    img-src 'self' data: 
-        https://*.doubleclick.net 
-        https://*.google.com 
-        https://*.googlesyndication.com 
-        https://*.google.co.in 
-        https://*.gstatic.com; 
-    frame-src 'self' 
-        https://*.doubleclick.net 
-        https://*.google.com 
-        https://*.googlesyndication.com 
-        https://googleads.g.doubleclick.net;
-    connect-src 'self' 
-        https://securepubads.g.doubleclick.net 
-        https://cdn.ampproject.org 
-        https://*.google-analytics.com 
-        https://ep1.adtrafficquality.google 
-        https://*.googlesyndication.com 
-        https://csi.gstatic.com;
-    font-src 'self' https://fonts.gstatic.com;
-">
-    
+
+    <!-- STRICT CSP (MV3 Safe) -->
+    <meta http-equiv="Content-Security-Policy" content="
+        default-src 'self';
+        script-src 'self';
+        style-src 'self';
+        img-src 'self' data:;
+        connect-src 'self';
+        font-src 'self';
+        object-src 'none';
+        base-uri 'self';
+        form-action 'self';
+    ">
+
     <link rel="stylesheet" href="analytics.css">
-    <script src="lib/chart.min.js"></script>
-    <script async src="https://securepubads.g.doubleclick.net/tag/js/gpt.js"></script>
+    <script src="lib/chart.min.js" defer></script>
+    <script src="analytics.js" defer></script>
 </head>
+
 <body class="analytics-body">
 
-    <div class="analytics-container">
-        <header class="analytics-header">
-            <div class="header-left">
-                <button onclick="window.history.back()" class="back-btn" title="Go Back">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                        <line x1="19" y1="12" x2="5" y2="12"></line>
-                        <polyline points="12 19 5 12 12 5"></polyline>
-                    </svg>
-                </button>
-                <div class="header-text">
-                    <div class="breadcrumb">Main Dashboard / Analytics</div>
-                    <h1>Business Insights <span class="live-indicator"></span></h1>
-                    <p>Real-time performance metrics & revenue data</p>
+<div class="analytics-container">
+
+    <header class="analytics-header">
+        <button id="backBtn" class="back-btn">←</button>
+
+        <div class="header-text">
+            <h1>Business Insights</h1>
+            <p>Real-time performance metrics & revenue data</p>
+        </div>
+
+        <div class="header-actions">
+            <select id="date-filter">
+                <option value="7">Last 7 Days</option>
+                <option value="30" selected>Last 30 Days</option>
+                <option value="90">Last 90 Days</option>
+                <option value="365">Last 1 Year</option>
+            </select>
+
+            
+        </div>
+    </header>
+
+    <!-- KPI Row -->
+    <div class="kpi-row">
+        <div class="kpi-card">
+            <div class="kpi-title">Total Revenue</div>
+            <div class="kpi-value" id="kpi-total-revenue">₹0</div>
+        </div>
+
+        <div class="kpi-card">
+            <div class="kpi-title">Total Orders</div>
+            <div class="kpi-value" id="kpi-total-orders">0</div>
+        </div>
+
+        <div class="kpi-card">
+            <div class="kpi-title">Average Order</div>
+            <div class="kpi-value" id="kpi-avg-order">₹0</div>
+        </div>
+
+        <div class="kpi-card highlight">
+            <div class="kpi-title">Net Revenue</div>
+            <div class="kpi-value" id="kpi-net-profit">₹0</div>
+        </div>
+    </div>
+
+    <!-- Top Ad Slot -->
+    <div class="ad-container-top">
+        <span>Advertisement Slot</span>
+    </div>
+
+    <div class="analytics-grid">
+
+        <div class="analytics-card">
+            <div class="card-header">
+                <h3>Revenue Distribution</h3>
+                <span class="badge">Live</span>
+            </div>
+
+            <div class="chart-container">
+                <canvas id="revenueChart"></canvas>
+                <div id="chart-loader" class="chart-loader">
+                    Loading analytics...
                 </div>
             </div>
 
-            <div class="header-right">
-                <div class="system-badge">
-                    <span class="badge-icon">🛡️</span>
-                    <div class="badge-details">
-                        <span class="badge-label">System Status</span>
-                        <span class="badge-value">Active v1.1.2</span>
-                    </div>
-                </div>
-            </div>
-        </header>
+            <div class="metrics-summary" id="revenue-metrics"></div>
+        </div>
 
-        <div id="div-gpt-ad-dashboard-top" class="ad-container-top"></div>
-
-        <div class="analytics-grid">
-            <div class="analytics-card main-chart-card">
-                <div class="card-header">
-                    <h3>Revenue Distribution</h3>
-                    <span class="badge">Live Analytics</span>
-                </div>
-                <div class="chart-container">
-                    <canvas id="revenueChart"></canvas>
-                </div>
-                <div class="metrics-summary" id="revenue-metrics"></div>
+        <div class="analytics-card">
+            <div class="card-header">
+                <h3>Top Performing Services</h3>
             </div>
 
-            <div class="analytics-card">
-                <div class="card-header">
-                    <h3>Top Performing Services</h3>
-                </div>
-                <div class="table-wrapper">
-                    <table id="top-services-table">
-                        <thead>
-                            <tr>
-                                <th>Service</th>
-                                <th class="text-center">Orders</th>
-                                <th class="text-right">Yield</th>
-                            </tr>
-                        </thead>
-                        <tbody id="top-services-body"></tbody>
-                    </table>
-                </div>
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Service</th>
+                            <th class="text-center">Orders</th>
+                            <th class="text-right">Yield</th>
+                        </tr>
+                    </thead>
+                    <tbody id="top-services-body"></tbody>
+                </table>
             </div>
         </div>
 
-        <footer class="analytics-footer">
-            <p>© 2026 CogniSol | CFMS • <a href="privacy.html">Privacy Policy</a></p>
-        </footer>
     </div>
 
-    <script src="analytics.js"></script>
+    <!-- Bottom Ad -->
+    <div class="ad-container-bottom">
+        <span>Sponsored Insight Block</span>
+    </div>
+
+    <footer class="analytics-footer">
+        <p>© 2026 CogniSol | CFMS </p>
+    </footer>
+
+</div>
+
 </body>
 </html>
-
-
