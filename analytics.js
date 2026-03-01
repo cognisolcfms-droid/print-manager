@@ -11,9 +11,9 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
-/* ==============================
+/* ==========================================
    MAIN INITIALIZER
-================================= */
+========================================== */
 
 async function initAnalytics() {
 
@@ -38,13 +38,13 @@ async function initAnalytics() {
             const getAll = store.getAll();
 
             getAll.onsuccess = async () => {
+
                 if (!getAll.result || getAll.result.length === 0) {
                     await loadFallbackData();
                     return;
                 }
 
-                // Real DB data
-                const processed = processOrderData(getAll.result);
+                const processed = processDBData(getAll.result);
                 renderUI(processed);
             };
 
@@ -62,37 +62,45 @@ async function initAnalytics() {
     }
 }
 
-/* ==============================
-   FALLBACK LOADER (YOUR JSON)
-================================= */
-
-async function loadFallbackData() {
-    try {
-        const response = await fetch('./dummy_data.json');
-        const data = await response.json();
-
-        const processed = processDummyData(data);
-        renderUI(processed);
-
-    } catch (error) {
-        console.error("Fallback failed:", error);
-        renderUI(emptyState());
-    }
-}
-
-/* ==============================
+/* ==========================================
    PROCESS REAL DB DATA
-================================= */
+========================================== */
 
-function processOrderData(orders) {
+function processDBData(orders) {
 
     const totalRevenue = orders.reduce(
-        (sum, o) => sum + (o.grandTotal || 0),
+        (sum, order) => sum + (order.grandTotal || 0),
         0
     );
 
     const totalOrders = orders.length;
     const avgOrder = totalOrders > 0 ? totalRevenue / totalOrders : 0;
+
+    // Generate service ranking based on customerName
+    const serviceMap = {};
+
+    orders.forEach(order => {
+        const name = order.customerName || "General Orders";
+
+        if (!serviceMap[name]) {
+            serviceMap[name] = {
+                name,
+                count: 0,
+                total: 0
+            };
+        }
+
+        serviceMap[name].count += 1;
+        serviceMap[name].total += (order.grandTotal || 0);
+    });
+
+    const services = Object.values(serviceMap)
+        .sort((a, b) => b.total - a.total)
+        .map(service => ({
+            name: service.name,
+            count: service.count,
+            yield: `₹ ${service.total.toLocaleString('en-IN')}`
+        }));
 
     return {
         totalRevenue,
@@ -100,50 +108,63 @@ function processOrderData(orders) {
         avgOrder,
         chartLabels: ["Total Revenue"],
         chartValues: [totalRevenue],
-        services: []
+        services
     };
 }
 
-/* ==============================
-   PROCESS YOUR DUMMY JSON
-================================= */
+/* ==========================================
+   FALLBACK USING dummy_data.json
+========================================== */
 
-function processDummyData(data) {
+async function loadFallbackData() {
+    try {
+        const response = await fetch('./dummy_data.json');
+        const data = await response.json();
 
-    const orders = data.orders || [];
-    const analytics = data.analytics || {};
+        const orders = data.orders || [];
+        const analytics = data.analytics || {};
 
-    const totalRevenue = orders.reduce(
-        (sum, o) => sum + (o.grandTotal || 0),
-        0
-    );
+        const totalRevenue = orders.reduce(
+            (sum, order) => sum + (order.grandTotal || 0),
+            0
+        );
 
-    const totalOrders = orders.length;
-    const avgOrder = totalOrders > 0 ? totalRevenue / totalOrders : 0;
+        const totalOrders = orders.length;
+        const avgOrder = totalOrders > 0 ? totalRevenue / totalOrders : 0;
 
-    // Revenue Chart
-    const chartLabels = (analytics.revenue || []).map(r => r.label);
-    const chartValues = (analytics.revenue || []).map(r =>
-        parseFloat(r.value.replace(/[₹,\s]/g, ''))
-    );
+        const chartLabels = (analytics.revenue || []).map(r => r.label);
 
-    return {
-        totalRevenue,
-        totalOrders,
-        avgOrder,
-        chartLabels,
-        chartValues,
-        services: analytics.services || []
-    };
+        const chartValues = (analytics.revenue || []).map(r =>
+            parseFloat(r.value.replace(/[₹,\s]/g, ''))
+        );
+
+        const services = (analytics.services || []).map(service => ({
+            name: service.name,
+            count: service.count,
+            yield: service.yield
+        }));
+
+        renderUI({
+            totalRevenue,
+            totalOrders,
+            avgOrder,
+            chartLabels,
+            chartValues,
+            services
+        });
+
+    } catch (error) {
+        console.error("Fallback failed:", error);
+        renderUI(emptyState());
+    }
 }
 
-/* ==============================
-   UI RENDERER
-================================= */
+/* ==========================================
+   RENDER UI
+========================================== */
 
 function renderUI(data) {
 
-    // KPI
     document.getElementById('kpi-total-revenue').textContent =
         `₹${data.totalRevenue.toLocaleString('en-IN')}`;
 
@@ -160,9 +181,9 @@ function renderUI(data) {
     renderServices(data.services);
 }
 
-/* ==============================
+/* ==========================================
    RENDER CHART
-================================= */
+========================================== */
 
 function renderChart(labels, values) {
 
@@ -197,16 +218,16 @@ function renderChart(labels, values) {
     });
 }
 
-/* ==============================
+/* ==========================================
    RENDER SERVICES TABLE
-================================= */
+========================================== */
 
 function renderServices(services) {
 
     const tableBody = document.getElementById('top-services-body');
     if (!tableBody) return;
 
-    if (!services.length) {
+    if (!services || services.length === 0) {
         tableBody.innerHTML =
             `<tr><td colspan="3" class="text-center">No Data</td></tr>`;
         return;
@@ -221,9 +242,9 @@ function renderServices(services) {
     `).join('');
 }
 
-/* ==============================
+/* ==========================================
    EMPTY STATE
-================================= */
+========================================== */
 
 function emptyState() {
     return {
