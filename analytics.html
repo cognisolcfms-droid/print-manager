@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Advanced Analytics - CogniSol | CFMS</title>
+    
+    <meta http-equiv="Content-Security-Policy" content="
+        default-src 'self'; 
+        script-src 'self' 'unsafe-inline' https://securepubads.g.doubleclick.net https://www.googletagservices.com https://cdn.ampproject.org; 
+        style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; 
+        img-src 'self' https://*.doubleclick.net https://*.google.com https://*.googlesyndication.com data:; 
+        frame-src 'self' https://*.doubleclick.net https://*.google.com https://*.googlesyndication.com https://googleads.g.doubleclick.net;
+        connect-src 'self' https://securepubads.g.doubleclick.net https://cdn.ampproject.org https://*.google-analytics.com;
+        font-src 'self' https://fonts.gstatic.com;
+    ">
+    
+    <link rel="stylesheet" href="analytics.css">
+    <script async src="https://securepubads.g.doubleclick.net/tag/js/gpt.js"></script>
+</head>
+<body class="analytics-body">
+
+    <div class="analytics-container">
+        <header class="analytics-header">
+            <button onclick="window.history.back()" class="back-btn">← Back</button>
+            <div class="header-text">
+                <h1>Business Insights</h1>
+                <p>PrintStore v1.1.2 Advanced Metrics</p>
+            </div>
+        </header>
+
+        <div id="div-gpt-ad-analytics-top" class="ad-container-top"></div>
+
+        <div class="analytics-grid">
+            <div class="analytics-card">
+                <h3>Revenue Stream</h3>
+                <div class="chart-placeholder" id="revenue-chart">
+                    </div>
+                <div class="metrics-list" id="revenue-metrics"></div>
+            </div>
+
+            <div class="analytics-card">
+                <h3>Top Performing Services</h3>
+                <div class="table-mini-wrapper">
+                    <table id="top-services-table">
+                        <thead>
+                            <tr>
+                                <th>Service</th>
+                                <th>Orders</th>
+                                <th>Yield</th>
+                            </tr>
+                        </thead>
+                        <tbody id="top-services-body"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div id="div-gpt-ad-analytics-bottom" class="ad-container-bottom"></div>
+
+        <footer class="analytics-footer">
+            <p>© 2026 CogniSol | CFMS | <a href="privacy.html">Privacy Policy</a></p>
+        </footer>
+    </div>
+
+    <script src="analytics.js"></script>
+</body>
+</html>

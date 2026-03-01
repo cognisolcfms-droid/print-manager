@@ -1,0 +1,24 @@
+{
+    "orders": [
+        { "orderId": "ORD-2026-9901", "customerName": "Vinayaka Digital Prints", "orderDate": "2026-03-01T10:00:00Z", "grandTotal": 1250.00 },
+        { "orderId": "ORD-2026-9902", "customerName": "Siddharth Advertising Agency", "orderDate": "2026-03-01T11:30:00Z", "grandTotal": 8400.00 },
+        { "orderId": "ORD-2026-9903", "customerName": "Deshmukh Flex & Vinyl Hub", "orderDate": "2026-03-01T14:20:00Z", "grandTotal": 320.00 },
+        { "orderId": "ORD-2026-9904", "customerName": "Priya Book Depot & Stationery", "orderDate": "2026-02-28T16:45:00Z", "grandTotal": 1100.00 },
+        { "orderId": "ORD-2026-9905", "customerName": "A1 Xerox & Lamination Center", "orderDate": "2026-02-28T09:10:00Z", "grandTotal": 2450.00 },
+        { "orderId": "ORD-2026-9906", "customerName": "Bright Future Coaching Institute", "orderDate": "2026-02-28T12:00:00Z", "grandTotal": 5600.00 },
+        { "orderId": "ORD-2026-9907", "customerName": "Metro Real Estate Group", "orderDate": "2026-02-27T15:30:00Z", "grandTotal": 12800.00 }
+    ],
+    "analytics": {
+        "revenue": [
+            { "label": "UPI / GPay", "value": "₹ 92,450.00" },
+            { "label": "Cash", "value": "₹ 34,120.00" },
+            { "label": "Business Credit", "value": "₹ 15,980.00" }
+        ],
+        "services": [
+            { "name": "Bulk A4 BW Printing", "count": 4500, "yield": "₹ 9,000.00" },
+            { "name": "Large Format Flex Printing", "count": 12, "yield": "₹ 18,500.00" },
+            { "name": "Hardcover Book Binding", "count": 45, "yield": "₹ 4,500.00" },
+            { "name": "ID Card PVC Printing", "count": 150, "yield": "₹ 7,500.00" }
+        ]
+    }
+}
