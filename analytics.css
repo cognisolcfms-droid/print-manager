@@ -233,3 +233,14 @@ tr:last-child td {
         grid-template-columns: 1fr;
     }
 }
+/* Optional: Add a subtle accent for the CogniSol brand */
+h1::after {
+    content: '';
+    display: block;
+    width: 40px;
+    height: 4px;
+    background-color: #4361ee; /* Your primary blue */
+    margin-top: 8px;
+    border-radius: 2px;
+}
+
