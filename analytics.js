@@ -1,258 +1,158 @@
-const DB_NAME = 'PrintingStoreDB';
-const ORDERS_STORE = 'orders';
-let myChart = null;
+/**
+ * CogniSol CFMS: Analytics Bridge Logic
+ * Handles Chart.js initialization, KPI updates, and data filtering.
+ */
 
 document.addEventListener('DOMContentLoaded', () => {
-    initAnalytics();
-
-    const backBtn = document.getElementById('backBtn');
-    if (backBtn) {
-        backBtn.addEventListener('click', () => window.history.back());
-    }
-});
-
-/* ==========================================
-   MAIN INITIALIZER
-========================================== */
-
-async function initAnalytics() {
-
-    if (!window.indexedDB) {
-        await loadFallbackData();
-        return;
-    }
-
-    try {
-        const request = indexedDB.open(DB_NAME);
-
-        request.onsuccess = async (event) => {
-            const db = event.target.result;
-
-            if (!db.objectStoreNames.contains(ORDERS_STORE)) {
-                await loadFallbackData();
-                return;
-            }
-
-            const tx = db.transaction([ORDERS_STORE], 'readonly');
-            const store = tx.objectStore(ORDERS_STORE);
-            const getAll = store.getAll();
-
-            getAll.onsuccess = async () => {
-
-                if (!getAll.result || getAll.result.length === 0) {
-                    await loadFallbackData();
-                    return;
-                }
-
-                const processed = processDBData(getAll.result);
-                renderUI(processed);
-            };
-
-            getAll.onerror = async () => {
-                await loadFallbackData();
-            };
-        };
-
-        request.onerror = async () => {
-            await loadFallbackData();
-        };
-
-    } catch (error) {
-        await loadFallbackData();
-    }
-}
-
-/* ==========================================
-   PROCESS REAL DB DATA
-========================================== */
-
-function processDBData(orders) {
-
-    const totalRevenue = orders.reduce(
-        (sum, order) => sum + (order.grandTotal || 0),
-        0
-    );
-
-    const totalOrders = orders.length;
-    const avgOrder = totalOrders > 0 ? totalRevenue / totalOrders : 0;
-
-    // Generate service ranking based on customerName
-    const serviceMap = {};
-
-    orders.forEach(order => {
-        const name = order.customerName || "General Orders";
-
-        if (!serviceMap[name]) {
-            serviceMap[name] = {
-                name,
-                count: 0,
-                total: 0
-            };
-        }
-
-        serviceMap[name].count += 1;
-        serviceMap[name].total += (order.grandTotal || 0);
-    });
-
-    const services = Object.values(serviceMap)
-        .sort((a, b) => b.total - a.total)
-        .map(service => ({
-            name: service.name,
-            count: service.count,
-            yield: `₹ ${service.total.toLocaleString('en-IN')}`
-        }));
-
-    return {
-        totalRevenue,
-        totalOrders,
-        avgOrder,
-        chartLabels: ["Total Revenue"],
-        chartValues: [totalRevenue],
-        services
-    };
-}
-
-/* ==========================================
-   FALLBACK USING dummy_data.json
-========================================== */
-
-async function loadFallbackData() {
-    try {
-        const response = await fetch('./dummy_data.json');
-        const data = await response.json();
-
-        const orders = data.orders || [];
-        const analytics = data.analytics || {};
-
-        const totalRevenue = orders.reduce(
-            (sum, order) => sum + (order.grandTotal || 0),
-            0
-        );
-
-        const totalOrders = orders.length;
-        const avgOrder = totalOrders > 0 ? totalRevenue / totalOrders : 0;
-
-        const chartLabels = (analytics.revenue || []).map(r => r.label);
-
-        const chartValues = (analytics.revenue || []).map(r =>
-            parseFloat(r.value.replace(/[₹,\s]/g, ''))
-        );
-
-        const services = (analytics.services || []).map(service => ({
-            name: service.name,
-            count: service.count,
-            yield: service.yield
-        }));
-
-        renderUI({
-            totalRevenue,
-            totalOrders,
-            avgOrder,
-            chartLabels,
-            chartValues,
-            services
-        });
-
-    } catch (error) {
-        console.error("Fallback failed:", error);
-        renderUI(emptyState());
-    }
-}
-
-/* ==========================================
-   RENDER UI
-========================================== */
-
-function renderUI(data) {
-
-    document.getElementById('kpi-total-revenue').textContent =
-        `₹${data.totalRevenue.toLocaleString('en-IN')}`;
-
-    document.getElementById('kpi-total-orders').textContent =
-        data.totalOrders;
-
-    document.getElementById('kpi-avg-order').textContent =
-        `₹${Math.round(data.avgOrder).toLocaleString('en-IN')}`;
-
-    document.getElementById('kpi-net-profit').textContent =
-        `₹${data.totalRevenue.toLocaleString('en-IN')}`;
-
-    renderChart(data.chartLabels, data.chartValues);
-    renderServices(data.services);
-}
-
-/* ==========================================
-   RENDER CHART
-========================================== */
-
-function renderChart(labels, values) {
-
-    const loader = document.getElementById('chart-loader');
-    if (loader) loader.classList.add('hidden');
-
-    const canvas = document.getElementById('revenueChart');
-    if (!canvas) return;
-
-    const ctx = canvas.getContext('2d');
-
-    if (myChart) myChart.destroy();
-
-    myChart = new Chart(ctx, {
-        type: 'doughnut',
-        data: {
-            labels: labels.length ? labels : ['No Data'],
-            datasets: [{
-                data: values.length ? values : [1],
-                backgroundColor: ['#4361ee', '#4cc9f0', '#3f37c9', '#f72585']
-            }]
+    const AnalyticsApp = {
+        chart: null,
+        
+        // Element Selectors
+        elements: {
+            backBtn: document.getElementById('backBtn'),
+            dateFilter: document.getElementById('date-filter'),
+            loader: document.getElementById('chart-loader'),
+            revenueChart: document.getElementById('revenueChart'),
+            // KPIs
+            kpiRevenue: document.getElementById('kpi-total-revenue'),
+            kpiOrders: document.getElementById('kpi-total-orders'),
+            kpiAvg: document.getElementById('kpi-avg-order'),
+            kpiNet: document.getElementById('kpi-net-profit'),
+            // Lists
+            servicesTable: document.getElementById('top-services-body'),
+            metricsSummary: document.getElementById('revenue-metrics')
         },
-        options: {
-            maintainAspectRatio: false,
-            cutout: '70%',
-            plugins: {
-                legend: {
-                    position: 'bottom'
-                }
+
+        init() {
+            this.bindEvents();
+            this.loadDashboardData(this.elements.dateFilter.value);
+        },
+
+        bindEvents() {
+            // Navigation
+            this.elements.backBtn.addEventListener('click', () => {
+                window.history.back();
+            });
+
+            // Filtering
+            this.elements.dateFilter.addEventListener('change', (e) => {
+                this.loadDashboardData(e.target.value);
+            });
+        },
+
+        async loadDashboardData(days) {
+            this.toggleLoader(true);
+            
+            // Simulate API Latency
+            const data = await this.fetchAnalyticsData(days);
+            
+            this.updateKPIs(data.stats);
+            this.renderTable(data.topServices);
+            this.renderChart(data.chartData);
+            this.renderMetricsSummary(data.metrics);
+            
+            this.toggleLoader(false);
+        },
+
+        // --- Bridge Logic: Data Fetching ---
+        async fetchAnalyticsData(days) {
+            // In a real MV3 app, this would use fetch() or chrome.storage
+            return new Promise((resolve) => {
+                setTimeout(() => {
+                    resolve({
+                        stats: {
+                            totalRevenue: `₹${(days * 1250).toLocaleString()}`,
+                            totalOrders: days * 12,
+                            avgOrder: `₹${(Math.random() * 500 + 500).toFixed(2)}`,
+                            netProfit: `₹${(days * 850).toLocaleString()}`
+                        },
+                        topServices: [
+                            { name: 'Cloud Migration', orders: days * 3, yield: 'High' },
+                            { name: 'Security Audit', orders: days * 2, yield: 'Medium' },
+                            { name: 'AI Integration', orders: Math.floor(days * 1.5), yield: 'Premium' }
+                        ],
+                        metrics: [
+                            { label: 'Growth', value: '+12.5%' },
+                            { label: 'Churn', value: '1.2%' },
+                            { label: 'Retention', value: '94%' }
+                        ],
+                        chartData: {
+                            labels: ['Week 1', 'Week 2', 'Week 3', 'Week 4'],
+                            values: [3000, 4500, 3200, 5000]
+                        }
+                    });
+                }, 800);
+            });
+        },
+
+        // --- UI Rendering Methods ---
+        updateKPIs(stats) {
+            this.elements.kpiRevenue.textContent = stats.totalRevenue;
+            this.elements.kpiOrders.textContent = stats.totalOrders;
+            this.elements.kpiAvg.textContent = stats.avgOrder;
+            this.elements.kpiNet.textContent = stats.netProfit;
+        },
+
+        renderTable(services) {
+            this.elements.servicesTable.innerHTML = services.map(s => `
+                <tr>
+                    <td>${s.name}</td>
+                    <td class="text-center">${s.orders}</td>
+                    <td class="text-right"><span class="badge">${s.yield}</span></td>
+                </tr>
+            `).join('');
+        },
+
+        renderMetricsSummary(metrics) {
+            this.elements.metricsSummary.innerHTML = metrics.map(m => `
+                <div class="metric-item">
+                    <span class="metric-label">${m.label}</span>
+                    <span class="metric-value">${m.value}</span>
+                </div>
+            `).join('');
+        },
+
+        renderChart(data) {
+            if (this.chart) {
+                this.chart.destroy();
             }
+
+            const ctx = this.elements.revenueChart.getContext('2d');
+            
+            // Check if Chart.js is loaded (since it's deferred)
+            if (typeof Chart === 'undefined') return;
+
+            this.chart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: data.labels,
+                    datasets: [{
+                        label: 'Revenue',
+                        data: data.values,
+                        borderColor: '#4361ee',
+                        backgroundColor: 'rgba(67, 97, 238, 0.1)',
+                        fill: true,
+                        tension: 0.4,
+                        borderWidth: 3,
+                        pointRadius: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        y: { beginAtZero: true, grid: { display: false } },
+                        x: { grid: { display: false } }
+                    }
+                }
+            });
+        },
+
+        toggleLoader(show) {
+            this.elements.loader.style.display = show ? 'flex' : 'none';
         }
-    });
-}
-
-/* ==========================================
-   RENDER SERVICES TABLE
-========================================== */
-
-function renderServices(services) {
-
-    const tableBody = document.getElementById('top-services-body');
-    if (!tableBody) return;
-
-    if (!services || services.length === 0) {
-        tableBody.innerHTML =
-            `<tr><td colspan="3" class="text-center">No Data</td></tr>`;
-        return;
-    }
-
-    tableBody.innerHTML = services.map(service => `
-        <tr>
-            <td><strong>${service.name}</strong></td>
-            <td class="text-center">${service.count}</td>
-            <td class="text-right">${service.yield}</td>
-        </tr>
-    `).join('');
-}
-
-/* ==========================================
-   EMPTY STATE
-========================================== */
-
-function emptyState() {
-    return {
-        totalRevenue: 0,
-        totalOrders: 0,
-        avgOrder: 0,
-        chartLabels: [],
-        chartValues: [],
-        services: []
     };
-}
+
+    AnalyticsApp.init();
+});
