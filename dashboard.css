@@ -166,3 +166,23 @@
     color: var(--text-muted);
     margin-top: 5px;
 }
+/* Replaces style="margin-top: 10px;" */
+.footer-margin-top {
+    margin-top: 10px !important;
+}
+
+/* Fallback styling when ads fail to load due to CORS */
+.ad-placeholder-visible {
+    background-color: #f8f9fa;
+    border: 1px dashed #dee2e6;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 200px;
+}
+
+.ad-placeholder-visible::before {
+    content: "Advertisement Space";
+    color: #adb5bd;
+    font-size: 0.9rem;
+}
