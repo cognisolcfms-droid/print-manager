@@ -3,51 +3,58 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Advanced Analytics - CogniSol | CFMS</title>
+    <title>Business Insights - CogniSol | CFMS</title>
     
     <meta http-equiv="Content-Security-Policy" content="
         default-src 'self'; 
-        script-src 'self' 'unsafe-inline' https://securepubads.g.doubleclick.net https://www.googletagservices.com https://cdn.ampproject.org; 
+        script-src 'self' 'unsafe-inline' 'unsafe-eval' https://securepubads.g.doubleclick.net https://www.googletagservices.com; 
         style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; 
-        img-src 'self' https://*.doubleclick.net https://*.google.com https://*.googlesyndication.com data:; 
-        frame-src 'self' https://*.doubleclick.net https://*.google.com https://*.googlesyndication.com https://googleads.g.doubleclick.net;
-        connect-src 'self' https://securepubads.g.doubleclick.net https://cdn.ampproject.org https://*.google-analytics.com;
+        img-src 'self' https://*.doubleclick.net https://*.google.com data:; 
+        frame-src 'self' https://*.doubleclick.net https://*.google.com;
+        connect-src 'self' https://securepubads.g.doubleclick.net;
         font-src 'self' https://fonts.gstatic.com;
     ">
     
     <link rel="stylesheet" href="analytics.css">
+    <script src="lib/chart.min.js"></script>
     <script async src="https://securepubads.g.doubleclick.net/tag/js/gpt.js"></script>
 </head>
 <body class="analytics-body">
 
     <div class="analytics-container">
         <header class="analytics-header">
-            <button onclick="window.history.back()" class="back-btn">← Back</button>
+            <button onclick="window.history.back()" class="back-btn">←</button>
             <div class="header-text">
                 <h1>Business Insights</h1>
-                <p>PrintStore v1.1.2 Advanced Metrics</p>
+                <p>Real-time performance metrics & revenue data</p>
             </div>
         </header>
 
         <div id="div-gpt-ad-analytics-top" class="ad-container-top"></div>
 
         <div class="analytics-grid">
-            <div class="analytics-card">
-                <h3>Revenue Stream</h3>
-                <div class="chart-placeholder" id="revenue-chart">
-                    </div>
-                <div class="metrics-list" id="revenue-metrics"></div>
+            <div class="analytics-card main-chart-card">
+                <div class="card-header">
+                    <h3>Revenue Distribution</h3>
+                    <span class="badge">Live Data</span>
+                </div>
+                <div class="chart-container">
+                    <canvas id="revenueChart"></canvas>
+                </div>
+                <div class="metrics-summary" id="revenue-metrics"></div>
             </div>
 
             <div class="analytics-card">
-                <h3>Top Performing Services</h3>
-                <div class="table-mini-wrapper">
+                <div class="card-header">
+                    <h3>Top Performing Services</h3>
+                </div>
+                <div class="table-wrapper">
                     <table id="top-services-table">
                         <thead>
                             <tr>
                                 <th>Service</th>
-                                <th>Orders</th>
-                                <th>Yield</th>
+                                <th class="text-center">Orders</th>
+                                <th class="text-right">Yield</th>
                             </tr>
                         </thead>
                         <tbody id="top-services-body"></tbody>
@@ -59,7 +66,7 @@
         <div id="div-gpt-ad-analytics-bottom" class="ad-container-bottom"></div>
 
         <footer class="analytics-footer">
-            <p>© 2026 CogniSol | CFMS | <a href="privacy.html">Privacy Policy</a></p>
+            <p>© 2026 CogniSol | CFMS • <a href="privacy.html">Privacy Policy</a></p>
         </footer>
     </div>
 
