@@ -11,7 +11,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
-
 /* ==============================
    MAIN INITIALIZER
 ================================= */
@@ -44,7 +43,9 @@ async function initAnalytics() {
                     return;
                 }
 
-                renderUI(processData(getAll.result));
+                // Real DB data
+                const processed = processOrderData(getAll.result);
+                renderUI(processed);
             };
 
             getAll.onerror = async () => {
@@ -61,53 +62,80 @@ async function initAnalytics() {
     }
 }
 
-
 /* ==============================
-   FALLBACK LOADER
+   FALLBACK LOADER (YOUR JSON)
 ================================= */
 
 async function loadFallbackData() {
     try {
         const response = await fetch('./dummy_data.json');
         const data = await response.json();
-        renderUI(processData(data.orders || []));
+
+        const processed = processDummyData(data);
+        renderUI(processed);
+
     } catch (error) {
-        renderUI(processData([]));
+        console.error("Fallback failed:", error);
+        renderUI(emptyState());
     }
 }
 
-
 /* ==============================
-   DATA PROCESSOR
+   PROCESS REAL DB DATA
 ================================= */
 
-function processData(orders) {
+function processOrderData(orders) {
 
     const totalRevenue = orders.reduce(
-        (sum, order) => sum + (order.grandTotal || 0),
+        (sum, o) => sum + (o.grandTotal || 0),
         0
     );
 
     const totalOrders = orders.length;
     const avgOrder = totalOrders > 0 ? totalRevenue / totalOrders : 0;
 
-    const paymentMap = {};
+    return {
+        totalRevenue,
+        totalOrders,
+        avgOrder,
+        chartLabels: ["Total Revenue"],
+        chartValues: [totalRevenue],
+        services: []
+    };
+}
 
-    orders.forEach(order => {
-        const method = order.paymentMethod || "Other";
-        paymentMap[method] =
-            (paymentMap[method] || 0) + (order.grandTotal || 0);
-    });
+/* ==============================
+   PROCESS YOUR DUMMY JSON
+================================= */
+
+function processDummyData(data) {
+
+    const orders = data.orders || [];
+    const analytics = data.analytics || {};
+
+    const totalRevenue = orders.reduce(
+        (sum, o) => sum + (o.grandTotal || 0),
+        0
+    );
+
+    const totalOrders = orders.length;
+    const avgOrder = totalOrders > 0 ? totalRevenue / totalOrders : 0;
+
+    // Revenue Chart
+    const chartLabels = (analytics.revenue || []).map(r => r.label);
+    const chartValues = (analytics.revenue || []).map(r =>
+        parseFloat(r.value.replace(/[₹,\s]/g, ''))
+    );
 
     return {
         totalRevenue,
         totalOrders,
         avgOrder,
-        labels: Object.keys(paymentMap),
-        values: Object.values(paymentMap)
+        chartLabels,
+        chartValues,
+        services: analytics.services || []
     };
 }
-
 
 /* ==============================
    UI RENDERER
@@ -115,6 +143,7 @@ function processData(orders) {
 
 function renderUI(data) {
 
+    // KPI
     document.getElementById('kpi-total-revenue').textContent =
         `₹${data.totalRevenue.toLocaleString('en-IN')}`;
 
@@ -127,12 +156,12 @@ function renderUI(data) {
     document.getElementById('kpi-net-profit').textContent =
         `₹${data.totalRevenue.toLocaleString('en-IN')}`;
 
-    renderChart(data.labels, data.values);
+    renderChart(data.chartLabels, data.chartValues);
+    renderServices(data.services);
 }
 
-
 /* ==============================
-   CHART RENDERER
+   RENDER CHART
 ================================= */
 
 function renderChart(labels, values) {
@@ -166,4 +195,43 @@ function renderChart(labels, values) {
             }
         }
     });
+}
+
+/* ==============================
+   RENDER SERVICES TABLE
+================================= */
+
+function renderServices(services) {
+
+    const tableBody = document.getElementById('top-services-body');
+    if (!tableBody) return;
+
+    if (!services.length) {
+        tableBody.innerHTML =
+            `<tr><td colspan="3" class="text-center">No Data</td></tr>`;
+        return;
+    }
+
+    tableBody.innerHTML = services.map(service => `
+        <tr>
+            <td><strong>${service.name}</strong></td>
+            <td class="text-center">${service.count}</td>
+            <td class="text-right">${service.yield}</td>
+        </tr>
+    `).join('');
+}
+
+/* ==============================
+   EMPTY STATE
+================================= */
+
+function emptyState() {
+    return {
+        totalRevenue: 0,
+        totalOrders: 0,
+        avgOrder: 0,
+        chartLabels: [],
+        chartValues: [],
+        services: []
+    };
 }
